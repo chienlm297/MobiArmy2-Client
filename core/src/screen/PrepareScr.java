@@ -582,7 +582,9 @@ public class PrepareScr extends CScreen {
             }
         }
 
-        if (readyCount != 0 && unReadyCount <= 0) {
+        // currLevel is the room type received from the server (message 76).
+        // Boss rooms allow the owner to play solo; other players must still be ready.
+        if ((currLevel == 5 || readyCount != 0) && unReadyCount <= 0) {
             if (this.money > TerrainMidlet.myInfo.xu) {
                 CCanvas.startOKDlg(Language.notEnoughMoney());
             }

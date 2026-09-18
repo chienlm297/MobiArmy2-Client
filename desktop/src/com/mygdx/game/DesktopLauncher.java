@@ -11,7 +11,7 @@ public class DesktopLauncher {
         config.setWindowIcon("res/icon.png");
         config.setTitle("Army2");
 
-        config.setWindowedMode(1280, 720); 
+        config.setWindowedMode(320, 240); 
         config.setResizable(true);
 
         MainGame game = new MainGame();

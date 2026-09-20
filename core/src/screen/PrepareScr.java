@@ -1302,6 +1302,8 @@ public class PrepareScr extends CScreen {
 
     }
 
+    public int autoOwnerID() { return this.ownerID; }
+
     public void setOwner(int newOwner) {
         this.ownerID = newOwner;
 

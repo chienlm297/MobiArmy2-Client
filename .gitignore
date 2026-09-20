@@ -138,3 +138,8 @@ Thumbs.db
 /jar/nbproject/private/
 /Army2-Midlet/nbproject/private/
 /Army2/nbproject/private/
+
+/test-results/
+/autoplay-profiles/
+
+/desktop/assets/.lwjgl/

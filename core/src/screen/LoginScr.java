@@ -298,6 +298,10 @@ public class LoginScr extends CScreen {
         });
     }
 
+    public void autoLogin(String username, String password) {
+        this.tUser.setText(username); this.tPass.setText(password); doLogin();
+    }
+
     public void doLogin() {
         user = this.tUser.getText().toLowerCase().trim();
         pass = this.tPass.getText();

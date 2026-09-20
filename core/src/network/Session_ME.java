@@ -2,7 +2,7 @@ package network;
 
 import CLib.mSocket;
 import CLib.mSystem;
-import CLib.mVector;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import coreLG.CCanvas;
 
 import java.io.DataInputStream;
@@ -23,15 +23,15 @@ public class Session_ME implements ISession {
     public DataInputStream dis;
     public static IMessageHandler messageHandler;
     private static mSocket _mSocket;
-    public boolean connected;
+    public volatile boolean connected;
     public boolean connecting;
     public boolean start = true;
     public Thread initThread;
-    public Thread collectorThread;
-    public Thread sendThread;
+    public volatile Thread collectorThread;
+    public volatile Thread sendThread;
     public int sendByteCount;
     public int recvByteCount;
-    private boolean getKeyComplete;
+    private volatile boolean getKeyComplete;
     public byte[] key = null;
     private byte curR;
     private byte curW;
@@ -245,7 +245,14 @@ public class Session_ME implements ISession {
         this.cleanNetwork();
     }
 
-    private void cleanNetwork() {
+    private synchronized void cleanNetwork() {
+        // Invalidate workers before closing streams; a reconnect must not revive old workers.
+        Thread oldSender=this.sendThread, oldCollector=this.collectorThread;
+        this.sendThread=null;this.collectorThread=null;
+        this.connected=false;
+        if(oldSender!=null)oldSender.interrupt();
+        if(oldCollector!=null && oldCollector!=Thread.currentThread())oldCollector.interrupt();
+        this.sender.removeAllMessage();
         this.key = null;
         this.curR = 0;
         this.curW = 0;
@@ -301,9 +308,10 @@ public class Session_ME implements ISession {
                 try {
                     Session_ME.this.errip = 2;
 
-                    while (Session_ME.this.isConnected()) {
+                    while (Session_ME.this.isConnected() && Thread.currentThread()==Session_ME.this.collectorThread) {
                         Session_ME.this.errip = 3;
                         Message message = this.readMessage();
+                        if(Thread.currentThread()!=Session_ME.this.collectorThread)return;
                         if (message == null) {
                             Session_ME.this.errip = 1200 + message.command;
                             break;
@@ -344,7 +352,7 @@ public class Session_ME implements ISession {
                 }
 
                 Session_ME.this.errip = 15;
-                if (Session_ME.this.connected) {
+                if (Session_ME.this.connected && Thread.currentThread()==Session_ME.this.collectorThread) {
                     Session_ME.this.errip = 16;
                     if (Session_ME.messageHandler != null) {
                         Session_ME.this.errip = 17;
@@ -553,7 +561,8 @@ public class Session_ME implements ISession {
                 Session_ME._mSocket.setKeepAlive(true);
                 Session_ME.this.dos = Session_ME._mSocket.getOutputStream();
                 Session_ME.this.dis = Session_ME._mSocket.getInputStream();
-                (new Thread(Session_ME.this.sender)).start();
+                Session_ME.this.sendThread=new Thread(Session_ME.this.sender,"army-sender");
+                Session_ME.this.sendThread.start();
                 Session_ME.this.collectorThread = new Thread(Session_ME.this.new MessageCollector((Session_ME.MessageCollector) null));
                 Session_ME.this.collectorThread.start();
                 Session_ME.this.timeConnected = mSystem.currentTimeMillis();
@@ -566,19 +575,19 @@ public class Session_ME implements ISession {
     }
 
     private class Sender implements Runnable {
-        public final mVector sendingMessage = new mVector();
+        public final ConcurrentLinkedQueue<Message> sendingMessage = new ConcurrentLinkedQueue<>();
         int iErrIp = 0;
 
         public Sender() {
         }
 
         public void AddMessage(Message message) {
-            this.sendingMessage.addElement(message);
+            this.sendingMessage.add(message);
         }
 
         public void removeAllMessage() {
             if (this.sendingMessage != null) {
-                this.sendingMessage.removeAllElements();
+                this.sendingMessage.clear();
             }
 
         }
@@ -587,17 +596,18 @@ public class Session_ME implements ISession {
             try {
                 this.iErrIp = 0;
 
-                while (Session_ME.this.connected) {
+                while (Session_ME.this.connected && Thread.currentThread()==Session_ME.this.sendThread) {
                     this.iErrIp = 1;
                     if (Session_ME.this.getKeyComplete) {
-                        while (this.sendingMessage.size() > 0) {
-                            this.iErrIp = 2;
-                            Message m = (Message) this.sendingMessage.elementAt(0);
-                            this.iErrIp = 300 + m.command;
-                            this.sendingMessage.removeElementAt(0);
-                            this.iErrIp = 400 + m.command;
-                            Session_ME.this.doSendMessage(m);
-                            this.iErrIp = 500 + m.command;
+                        while (true) {
+                            synchronized(Session_ME.this) {
+                                if(!Session_ME.this.connected || Thread.currentThread()!=Session_ME.this.sendThread)return;
+                                Message m=this.sendingMessage.poll();
+                                if(m==null)break;
+                                this.iErrIp=400+m.command;
+                                Session_ME.this.doSendMessage(m);
+                                this.iErrIp=500+m.command;
+                            }
                         }
                     }
 
@@ -606,7 +616,8 @@ public class Session_ME implements ISession {
                         Thread.sleep(10L);
                         this.iErrIp = 7;
                     } catch (InterruptedException var2) {
-                        this.iErrIp = 8;
+                        Thread.currentThread().interrupt();
+                        return;
                     }
                 }
 

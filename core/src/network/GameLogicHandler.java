@@ -92,10 +92,12 @@ public class GameLogicHandler implements IGameLogicHandler {
     }
 
     public void onLoginFail(String reason) {
+        autoplay.AutoRuntime.error("Login rejected");
         CCanvas.startOKDlg(reason);
     }
 
     public void onLoginSuccess() {
+        autoplay.AutoRuntime.loginConfirmed();
         CRes.out("========> Login thangh cong nha ae!!!!!!!");
         if (LoginScr.remember == 1) {
             if (GameMidlet.server != 2) {
@@ -415,11 +417,13 @@ public class GameLogicHandler implements IGameLogicHandler {
     }
 
     public void onServerInfo(String info) {
+        autoplay.AutoRuntime.broadcast(info);
         CCanvas.infoPopup.setInfo(info);
         CCanvas.infoPopup.show();
     }
 
     public void onServerMessage(String msg) {
+        autoplay.AutoRuntime.error("Server message: " + msg);
         CCanvas.startOKDlg(msg);
     }
 

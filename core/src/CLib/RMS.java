@@ -18,6 +18,12 @@ public class RMS {
    }
 
    public static void saveRMS(String filename, byte[] data) throws Exception {
+      String profile = System.getenv("AUTO_PROFILE_DIR");
+      if (profile != null) {
+         java.nio.file.Path path = java.nio.file.Paths.get(profile, "rms", filename);
+         java.nio.file.Files.createDirectories(path.getParent());
+         java.nio.file.Files.write(path, data); return;
+      }
       FileHandle file = null;
       if (GameMidlet.DEVICE == 4) {
          file = Gdx.files.local("rms/" + filename);
@@ -39,6 +45,11 @@ public class RMS {
    }
 
    public static byte[] loadRMS(String filename) {
+      String profile = System.getenv("AUTO_PROFILE_DIR");
+      if (profile != null) {
+         try { return java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(profile, "rms", filename)); }
+         catch (java.io.IOException e) { return null; }
+      }
       byte[][] data = new byte[1][];
 
       try {

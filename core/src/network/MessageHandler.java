@@ -592,6 +592,7 @@ public class MessageHandler implements IMessageHandler {
                         BM.removeTornado();
                         CScreen.isSetClip = false;
                         nextTurnFlag = true;
+                        autoplay.AutoRuntime.match();
                         break;
                     }
                     case 93: {
@@ -610,6 +611,7 @@ public class MessageHandler implements IMessageHandler {
                         short x = msg.reader().readShort();
                         short y = msg.reader().readShort();
                         CRes.out("=========================> rec move = " + x + "_" + y);
+                        autoplay.AutoRuntime.observedMove(whoMove,x,y);
                         PM.p[whoMove].xToNow = x;
                         PM.p[whoMove].yToNow = y;
                         if (PM.p[whoMove].x != x || PM.p[whoMove].y != y) {
@@ -637,6 +639,7 @@ public class MessageHandler implements IMessageHandler {
                         short xS = msg.reader().readShort();
                         short yS = msg.reader().readShort();
                         short angle = msg.reader().readShort();
+                        autoplay.AutoRuntime.observedShot(whoFire,type,angle);
                         byte force_2 = 0;
                         if (type == 17 || type == 19) {
                             force_2 = msg.reader().readByte();
@@ -741,6 +744,7 @@ public class MessageHandler implements IMessageHandler {
                     case 51: {
                         byte whoUpdateHP = msg.reader().readByte();
                         int nextHP = msg.reader().readUnsignedShort();
+                        autoplay.AutoRuntime.observedHP(whoUpdateHP,nextHP);
                         byte pixel = msg.reader().readByte();
                         if (PrepareScr.currLevel != 7) {
                             if (PM.p[whoUpdateHP] != null) {
@@ -764,6 +768,7 @@ public class MessageHandler implements IMessageHandler {
                     case 24: {
                         byte whoNext = msg.reader().readByte();
                         GameScr.pm.setNextPlayer(whoNext);
+                        autoplay.AutoRuntime.turn(whoNext);
                         GameScr.bm.nBull = 0;
                         if (nextTurnFlag) {
                             nextTurnFlag = false;
@@ -784,7 +789,9 @@ public class MessageHandler implements IMessageHandler {
                         byte whoUse = msg.reader().readByte();
                         byte item = msg.reader().readByte();
                         CRes.err("=======> USED ITEM = " + item);
+                        autoplay.AutoRuntime.observedItem(whoUse,item);
                         PM.p[whoUse].UseItem(item, true, 0);
+                        autoplay.AutoRuntime.item(whoUse);
                         break;
                     }
                     case 69: {
@@ -814,6 +821,7 @@ public class MessageHandler implements IMessageHandler {
                         byte exBonus = msg.reader().readByte();
                         int moneyBonus2 = msg.reader().readInt();
                         CCanvas.gameScr.setWin(whoWin, exBonus, moneyBonus2);
+                        autoplay.AutoRuntime.result();
                         CCanvas.prepareScr.resetReady();
                         CCanvas.prepareScr.readyDelay = 5;
                         Session_ME.receiveSynchronized = 0;
@@ -1009,6 +1017,7 @@ public class MessageHandler implements IMessageHandler {
                         byte boardID = msg.reader().readByte();
                         String boardName = msg.reader().readUTF();
                         PrepareScr.currLevel = roomLevel = msg.reader().readByte();
+                        autoplay.AutoRuntime.room(boardID);
                         BoardListScr.setBoardName(boardID, boardName);
                         break;
                     }

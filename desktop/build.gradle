@@ -47,3 +47,9 @@ tasks.register('dist', Jar) {
 dist.dependsOn classes
 
 eclipse.project.name = appName + "-desktop"
+
+// Used by the two-client acceptance runner; credentials remain in process environment.
+tasks.register('autoplayClasspath') {
+    dependsOn classes, ':core:jar'
+    doLast { file("$buildDir/autoplay-classpath.txt").text = sourceSets.main.runtimeClasspath.asPath }
+}

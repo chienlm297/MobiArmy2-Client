@@ -96,7 +96,7 @@ public class MainGame implements ApplicationListener {
     }
 
     public void render() {
-        if (!isPause) {
+        if (!isPause || Boolean.parseBoolean(System.getenv("AUTO_ENABLED"))) {
             this.errrender = 0;
             Gdx.gl.glClearColor(0.0F, 0.0F, 0.0F, 1.0F);
             this.errrender = 1;
@@ -126,8 +126,11 @@ public class MainGame implements ApplicationListener {
             this.errrender = 10;
             GameMidlet.gameCanvas.paint(this._graphic);
             this._debug.paint(this._graphic);
+            if (!autoplay.AutoRuntime.status().isEmpty() && model.Font.smallFont != null)
+                model.Font.smallFont.drawString(this._graphic, autoplay.AutoRuntime.status(), 4, 4, 0);
             this.errrender = 11;
             this._graphic.end();
+            autoplay.AutoRuntime.afterRender();
             this.errrender = 12;
         }
     }
@@ -135,6 +138,7 @@ public class MainGame implements ApplicationListener {
     private void mainLoop() {
         this.errup = 1;
         Session_ME.update();
+        autoplay.AutoRuntime.tick();
         this.errup = 2;
         if (mSystem.isOnConnectFail) {
             this.errup = 3;
@@ -336,6 +340,8 @@ public class MainGame implements ApplicationListener {
         }
 
         public boolean keyDown(int keycode) {
+            if (keycode == com.badlogic.gdx.Input.Keys.F8) { autoplay.AutoRuntime.toggle(); return true; }
+            if (keycode == com.badlogic.gdx.Input.Keys.F9) { autoplay.AutoRuntime.stop(); return true; }
             System.out.print("keyDown="+keycode);
             if (CCanvas.currentDialog != null) {
                 if (keycode == 131 && CCanvas.currentDialog.left != null) {
